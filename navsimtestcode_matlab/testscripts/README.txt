@@ -1,0 +1,1 @@
+These files contain all the parts to generate the point cloud and depth images.  They are not currently commented very much as they are more meant to be personal tests for me to develop the ideas and then I will transfer them to ROS for generating test.
