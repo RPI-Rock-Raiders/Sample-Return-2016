@@ -8,6 +8,47 @@
 #include "std_msgs/String.h"
 #include "sensor_msgs/Joy.h"
 
+uint32_t makePacket(uint8_t address, uint8_t cmd,uint8_t data)
+{
+    uint32_t rtn = 0x00000000;
+    rtn+=address; //rtn = 0x00 00 00 11
+    rtn = rtn<<8; //rtn = 0x00 00 11 00
+    rtn |= cmd; //rtn = 0x00 00 11 aa
+    rtn = rtn <<8; //rtn = 0x00 11 aa 00
+    rtn |= data; //rtn = 0x00 11 aa bb
+    rtn = rtn <<8; //rtn = 0x11 aa bb 00
+    uint8_t chksm = (address+cmd+data) & 0x7F; //checksum is 7 bit masked addition of the other 3 bytes. 7f= 0111 1111
+    rtn |= chksm; //rtn = 0x11 aa bb 76
+    return rtn;
+}
+void stopMotors(tty_fd)
+{
+    //Send command 0 0 to all 5 motor controllers
+    uint32_t serialcmd;
+    for(i=128;i<133;i++)
+    {
+        serialcmd = makePacket(i,0,0);
+        write(tty_fd,&serialcmd,4);
+        serialcmd = makePacket(i,4,0);
+        write(tty_fd,&serialcmd,4);
+    }
+}
+void goForward(unsigned char intensity)
+{
+    
+}
+void goBackward(unsigned char intensity)
+{
+    
+}
+void turnClockwise(unsigned char intensity)
+{
+    
+}
+void turnCounterclockwise(unsigned char intensity)
+{
+    
+}
 #define CMD_STOP    0x00
 #define CMD_FWD     0x01
 #define CMD_REV     0x02
@@ -71,8 +112,8 @@ int main(int argc,char** argv)
         return EXIT_FAILURE;
     }
     ROS_INFO("Opened %s (fd %d)",argv[1],tty_fd);
-    cfsetospeed(&tio,B115200);            // 115200 baud
-    cfsetispeed(&tio,B115200);            // 115200 baud
+    cfsetospeed(&tio,B9600);            // 9600 baud
+    cfsetispeed(&tio,B9600);            // 9600 baud
 
     tcsetattr(tty_fd,TCSANOW,&tio);
 
@@ -94,18 +135,17 @@ int main(int argc,char** argv)
             if(btn)
             {
                 if(axispos>0)
-                    serialcmd=makeserialpacket(CMD_CW,axispos);
+                    turnClockwise(axispos,tty_fd);
                 else
-                    serialcmd=makeserialpacket(CMD_CCW,255-axispos);
+                    turnCounterclockwise(axispos,tty_fd);
             }
             else
             {
                 if(axispos>0)
-                    serialcmd=makeserialpacket(CMD_FWD,axispos);
+                    goForward(axispos,tty_fd);
                 else
-                    serialcmd=makeserialpacket(CMD_REV,255-axispos);
+                    goBackward(axispos,tty_fd);
             }
-            write(tty_fd,&serialcmd,2);
             ROS_INFO("Sending command %04x",serialcmd);
             prevaxispos=axispos;
             axispos=0;
